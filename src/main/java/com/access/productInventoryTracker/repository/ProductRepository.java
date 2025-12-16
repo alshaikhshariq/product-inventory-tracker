@@ -13,11 +13,10 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     // List<Product> findByCategory(String category);
 
 
-    // AI Generated
-    @Query(value = "SELECT * FROM product p " +
-                   "WHERE p.category = '" + ":#{#category}" + "' " +
-                   "AND p.available = true " +
-                   "ORDER BY p.price DESC",
-           nativeQuery = true)
-    List<Product> findProductsByCategory(@Param("category") String category);
+    // Derived queries for efficient filtering
+    List<Product> findByCategoryIgnoreCase(String category);
+
+    List<Product> findByPriceBetween(double minPrice, double maxPrice);
+
+    List<Product> findByAvailable(boolean available);
 }

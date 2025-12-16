@@ -2,11 +2,10 @@ package com.access.productInventoryTracker.service;
 
 import com.access.productInventoryTracker.dto.ProductDTO;
 import com.access.productInventoryTracker.model.Product;
+import com.access.productInventoryTracker.repository.ProductRepository;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
-
-import com.access.productInventoryTracker.repository.ProductRepository;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -28,12 +27,19 @@ public class ProductService {
             product.isAvailable()
         );
     }
-    
-    // Get all products as DTOs
-    public List<ProductDTO> getAllProducts() {
-        return productRepository.findAll().stream()
-            .map(this::convertToDTO)
-            .collect(Collectors.toList());
+
+    private void validatePriceRange(double minPrice, double maxPrice) {
+        if (minPrice < 0 || maxPrice < 0 || minPrice > maxPrice) {
+            throw new IllegalArgumentException("Invalid price range");
+        }
+    }
+
+    private String validateAndNormalizeCategory(String category) {
+        String normalized = Optional.ofNullable(category)
+            .map(String::trim)
+            .filter(c -> !c.isEmpty())
+            .orElseThrow(() -> new IllegalArgumentException("Category must not be null or empty"));
+        return normalized.toLowerCase();
     }
 
     /**
@@ -44,15 +50,10 @@ public class ProductService {
      * @return list of ProductDTO objects matching the category, empty list if category is null or not found
      */
     public List<ProductDTO> getProductsByCategory(String category) {
-        return Optional.ofNullable(category)
-            .map(cat -> {
-                String normalizedCategory = cat.toLowerCase();
-                return productRepository.findAll().stream()
-                    .filter(product -> product.getCategory().equalsIgnoreCase(normalizedCategory))
-                    .map(this::convertToDTO)
-                    .collect(Collectors.toList());
-            })
-            .orElse(List.of());
+        String normalizedCategory = validateAndNormalizeCategory(category);
+        return productRepository.findByCategoryIgnoreCase(normalizedCategory).stream()
+            .map(this::convertToDTO)
+            .collect(Collectors.toList());
     }
 
     /**
@@ -63,12 +64,9 @@ public class ProductService {
      * @return list of ProductDTO objects within the price range, empty list if minPrice > maxPrice or no products match
      */
     public List<ProductDTO> getProductsByPriceRange(double minPrice, double maxPrice) {
-        if (minPrice > maxPrice) {
-            return List.of();
-        }
-        
-        return productRepository.findAll().stream()
-            .filter(product -> product.getPrice() >= minPrice && product.getPrice() <= maxPrice)
+        validatePriceRange(minPrice, maxPrice);
+
+        return productRepository.findByPriceBetween(minPrice, maxPrice).stream()
             .map(this::convertToDTO)
             .collect(Collectors.toList());
     }
@@ -80,8 +78,7 @@ public class ProductService {
      * @return list of ProductDTO objects matching the availability status
      */
     public List<ProductDTO> getProductsByAvailability(boolean available) {
-        return productRepository.findAll().stream()
-            .filter(product -> product.isAvailable() == available)
+        return productRepository.findByAvailable(available).stream()
             .map(this::convertToDTO)
             .collect(Collectors.toList());
     }

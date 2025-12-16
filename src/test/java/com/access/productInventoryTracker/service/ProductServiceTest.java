@@ -50,6 +50,22 @@ public class ProductServiceTest {
         );
 
         when(productRepository.findAll()).thenReturn(mockProducts);
+        when(productRepository.findByCategoryIgnoreCase("electronics")).thenReturn(
+            mockProducts.stream().filter(p -> p.getCategory().equalsIgnoreCase("electronics")).toList()
+        );
+        when(productRepository.findByPriceBetween(100.0, 200.0)).thenReturn(
+            mockProducts.stream().filter(p -> p.getPrice() >= 100.0 && p.getPrice() <= 200.0).toList()
+        );
+        when(productRepository.findByPriceBetween(2000.0, 3000.0)).thenReturn(List.of());
+        when(productRepository.findByPriceBetween(100.0, 100.0)).thenReturn(
+            mockProducts.stream().filter(p -> p.getPrice() == 100.0).toList()
+        );
+        when(productRepository.findByAvailable(true)).thenReturn(
+            mockProducts.stream().filter(Product::isAvailable).toList()
+        );
+        when(productRepository.findByAvailable(false)).thenReturn(
+            mockProducts.stream().filter(p -> !p.isAvailable()).toList()
+        );
     }
 
     // Bug Fix Verification Test
@@ -105,6 +121,7 @@ public class ProductServiceTest {
         
         assertNotNull(result);
         // Should return products with price exactly 100.0
+        assertEquals(1, result.size());
         result.forEach(product -> {
             assertEquals(100.0, product.getPrice(), 0.01, "Product should have exact boundary price");
         });
@@ -112,11 +129,8 @@ public class ProductServiceTest {
 
     @Test
     public void testGetProductsByPriceRange_InvalidRange() {
-        // When minPrice > maxPrice, should return empty list
-        List<ProductDTO> result = productService.getProductsByPriceRange(200.0, 100.0);
-        
-        assertNotNull(result);
-        assertTrue(result.isEmpty(), "Should return empty list when minPrice > maxPrice");
+        // When minPrice > maxPrice, should throw an exception
+        assertThrows(IllegalArgumentException.class, () -> productService.getProductsByPriceRange(200.0, 100.0));
     }
 
     // Category Filter Tests (After Fix)
@@ -152,6 +166,12 @@ public class ProductServiceTest {
 
     @Test
     public void testGetProductsByCategory_CategoryNotFound() {
+        assertThrows(IllegalArgumentException.class, () -> productService.getProductsByCategory(""));
+        assertThrows(IllegalArgumentException.class, () -> productService.getProductsByCategory("   "));
+    }
+
+    @Test
+    public void testGetProductsByCategory_NonExistingCategory() {
         List<ProductDTO> result = productService.getProductsByCategory("NonExistentCategory");
         
         assertNotNull(result);
@@ -160,11 +180,7 @@ public class ProductServiceTest {
 
     @Test
     public void testGetProductsByCategory_NullCategory() {
-        // Handle null category gracefully
-        List<ProductDTO> result = productService.getProductsByCategory(null);
-        
-        assertNotNull(result);
-        assertTrue(result.isEmpty(), "Should return empty list for null category");
+        assertThrows(IllegalArgumentException.class, () -> productService.getProductsByCategory(null));
     }
 
     // Availability Filter Tests
