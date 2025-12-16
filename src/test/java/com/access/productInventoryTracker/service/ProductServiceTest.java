@@ -15,6 +15,11 @@ import org.springframework.boot.test.context.SpringBootTest;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * Unit tests for ProductService class.
+ * Tests all filtering methods including bug fix verification, edge cases, and validation scenarios.
+ * Uses Mockito to mock the ProductRepository for isolated unit testing.
+ */
 @SpringBootTest
 public class ProductServiceTest {
 
@@ -24,6 +29,11 @@ public class ProductServiceTest {
     @InjectMocks
     private ProductService productService;
 
+    /**
+     * Sets up mock data before each test.
+     * Creates a list of 20 mock products with various categories, prices, and availability statuses.
+     * Configures Mockito to return appropriate mock data for different repository method calls.
+     */
     @BeforeEach
     public void setupMockProducts() {
         List<Product> mockProducts = Arrays.asList(
@@ -68,10 +78,13 @@ public class ProductServiceTest {
         );
     }
 
-    // Bug Fix Verification Test
+    /**
+     * Tests that the bug in getProductsByCategory() has been fixed.
+     * Verifies that the method now correctly returns products matching the category
+     * (previously it returned products NOT matching the category due to inverted logic).
+     */
     @Test
     public void testGetProductsByCategory_AfterFix() {
-        // This test verifies the bug is fixed: the method now returns products that DO match the category
         List<ProductDTO> result = productService.getProductsByCategory("Electronics");
         
         // After fix: Should return Electronics products (IDs: 1, 2, 14, 15, 16) = 5 products
@@ -85,7 +98,10 @@ public class ProductServiceTest {
         });
     }
 
-    // Price Range Filter Tests
+    /**
+     * Tests filtering products by price range with valid parameters.
+     * Verifies that only products within the specified range (inclusive) are returned.
+     */
     @Test
     public void testGetProductsByPriceRange_ValidRange() {
         List<ProductDTO> result = productService.getProductsByPriceRange(100.0, 200.0);
@@ -105,6 +121,10 @@ public class ProductServiceTest {
         assertEquals(5, result.size());
     }
 
+    /**
+     * Tests filtering by price range when no products exist in the specified range.
+     * Verifies that an empty list is returned when no products match the criteria.
+     */
     @Test
     public void testGetProductsByPriceRange_NoProductsInRange() {
         // Use range 2000-3000 where no products exist (max price in mock data is 1500.0)
@@ -114,9 +134,12 @@ public class ProductServiceTest {
         assertTrue(result.isEmpty(), "Should return empty list when no products in range");
     }
 
+    /**
+     * Tests filtering by price range with boundary values (minPrice == maxPrice).
+     * Verifies that products with the exact boundary price are included.
+     */
     @Test
     public void testGetProductsByPriceRange_BoundaryValues() {
-        // Test with boundary values - products at exact min and max
         List<ProductDTO> result = productService.getProductsByPriceRange(100.0, 100.0);
         
         assertNotNull(result);
@@ -127,13 +150,19 @@ public class ProductServiceTest {
         });
     }
 
+    /**
+     * Tests validation for invalid price range (minPrice > maxPrice).
+     * Verifies that an IllegalArgumentException is thrown for invalid ranges.
+     */
     @Test
     public void testGetProductsByPriceRange_InvalidRange() {
-        // When minPrice > maxPrice, should throw an exception
         assertThrows(IllegalArgumentException.class, () -> productService.getProductsByPriceRange(200.0, 100.0));
     }
 
-    // Category Filter Tests (After Fix)
+    /**
+     * Tests filtering products by category with a valid category name.
+     * Verifies that all returned products belong to the specified category.
+     */
     @Test
     public void testGetProductsByCategory_ValidCategory() {
         List<ProductDTO> result = productService.getProductsByCategory("Electronics");
@@ -148,9 +177,12 @@ public class ProductServiceTest {
         });
     }
 
+    /**
+     * Tests that category filtering is case-insensitive.
+     * Verifies that different case variations of the same category return identical results.
+     */
     @Test
     public void testGetProductsByCategory_CaseInsensitive() {
-        // Test with different case variations
         List<ProductDTO> result1 = productService.getProductsByCategory("ELECTRONICS");
         List<ProductDTO> result2 = productService.getProductsByCategory("electronics");
         List<ProductDTO> result3 = productService.getProductsByCategory("Electronics");
@@ -164,12 +196,20 @@ public class ProductServiceTest {
         assertEquals(result2.size(), result3.size());
     }
 
+    /**
+     * Tests validation for empty and whitespace-only category strings.
+     * Verifies that IllegalArgumentException is thrown for invalid category inputs.
+     */
     @Test
     public void testGetProductsByCategory_CategoryNotFound() {
         assertThrows(IllegalArgumentException.class, () -> productService.getProductsByCategory(""));
         assertThrows(IllegalArgumentException.class, () -> productService.getProductsByCategory("   "));
     }
 
+    /**
+     * Tests filtering by a category that doesn't exist in the database.
+     * Verifies that an empty list is returned when no products match the category.
+     */
     @Test
     public void testGetProductsByCategory_NonExistingCategory() {
         List<ProductDTO> result = productService.getProductsByCategory("NonExistentCategory");
@@ -178,12 +218,19 @@ public class ProductServiceTest {
         assertTrue(result.isEmpty(), "Should return empty list when category doesn't exist");
     }
 
+    /**
+     * Tests validation for null category input.
+     * Verifies that IllegalArgumentException is thrown when category is null.
+     */
     @Test
     public void testGetProductsByCategory_NullCategory() {
         assertThrows(IllegalArgumentException.class, () -> productService.getProductsByCategory(null));
     }
 
-    // Availability Filter Tests
+    /**
+     * Tests filtering products by availability status (available = true).
+     * Verifies that only available products are returned.
+     */
     @Test
     public void testGetProductsByAvailability_AvailableProducts() {
         List<ProductDTO> result = productService.getProductsByAvailability(true);
@@ -200,6 +247,10 @@ public class ProductServiceTest {
         assertEquals(14, result.size());
     }
 
+    /**
+     * Tests filtering products by availability status (available = false).
+     * Verifies that only unavailable products are returned.
+     */
     @Test
     public void testGetProductsByAvailability_UnavailableProducts() {
         List<ProductDTO> result = productService.getProductsByAvailability(false);
@@ -216,10 +267,12 @@ public class ProductServiceTest {
         assertEquals(6, result.size());
     }
 
+    /**
+     * Tests that filtering by availability correctly partitions all products.
+     * Verifies that the sum of available and unavailable products equals the total number of products.
+     */
     @Test
     public void testGetProductsByAvailability_EmptyResult() {
-        // This test would need a different mock setup, but with current mock data,
-        // both true and false should return results. Testing the method handles the filter correctly.
         List<ProductDTO> available = productService.getProductsByAvailability(true);
         List<ProductDTO> unavailable = productService.getProductsByAvailability(false);
         

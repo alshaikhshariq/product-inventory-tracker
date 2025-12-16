@@ -8,16 +8,31 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 
+/**
+ * Service class for managing product operations and filtering.
+ * Provides methods to retrieve and filter products using database-level queries for optimal performance.
+ */
 @Service
 public class ProductService {
     
     private final ProductRepository productRepository;
 
+    /**
+     * Constructs a ProductService with the given repository.
+     * 
+     * @param productRepository the repository for product data access
+     */
     public ProductService(ProductRepository productRepository) {
         this.productRepository = productRepository;
     }
     
-    // Helper method to convert Product to ProductDTO
+    /**
+     * Converts a Product entity to a ProductDTO.
+     * Normalizes the category to lowercase for consistent data representation.
+     * 
+     * @param product the Product entity to convert
+     * @return a ProductDTO with normalized category (lowercase)
+     */
     private ProductDTO convertToDTO(Product product) {
         return new ProductDTO(
             product.getId(),
@@ -28,12 +43,28 @@ public class ProductService {
         );
     }
 
+    /**
+     * Validates that the price range is valid.
+     * Ensures both prices are non-negative and minPrice is not greater than maxPrice.
+     * 
+     * @param minPrice the minimum price value
+     * @param maxPrice the maximum price value
+     * @throws IllegalArgumentException if prices are negative or minPrice > maxPrice
+     */
     private void validatePriceRange(double minPrice, double maxPrice) {
         if (minPrice < 0 || maxPrice < 0 || minPrice > maxPrice) {
             throw new IllegalArgumentException("Invalid price range");
         }
     }
 
+    /**
+     * Validates and normalizes a category string.
+     * Trims whitespace, checks for null/empty values, and converts to lowercase.
+     * 
+     * @param category the category string to validate and normalize
+     * @return the normalized category (trimmed and lowercase)
+     * @throws IllegalArgumentException if category is null, empty, or only whitespace
+     */
     private String validateAndNormalizeCategory(String category) {
         String normalized = Optional.ofNullable(category)
             .map(String::trim)
